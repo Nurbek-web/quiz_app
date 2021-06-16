@@ -1,13 +1,15 @@
 import React from "react";
 import { Route } from "react-router-dom";
 
-import ArticleList from "./components/ArticleList";
-import ArticleDetail from "./components/ArticleDetail";
+import QuizList from "./components/QuizList";
+import QuizDetail from "./components/QuizDetail";
+import QuizForm from "./components/QuizForm";
 
 const BaseRouter = () => (
   <div>
-    <Route path="/" component={ArticleList} exact />
-    <Route exact path="/:id" component={ArticleDetail} />
+    <Route path="/" component={QuizList} exact />
+    <Route exact path="/:id" component={QuizDetail} />
+    <Route exact path="/:id/start" component={QuizForm} />
   </div>
 );
 

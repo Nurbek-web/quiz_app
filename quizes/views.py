@@ -3,8 +3,9 @@ from django.http import Http404
 from rest_framework.response import Response
 from rest_framework import status
 
-from .serializers import QuizSerializer
+from .serializers import AnswerSerializer, QuizSerializer, QuestionSerializer
 from quizes.models import Quiz
+from questions.models import Answer
 
 # GET, POST
 class QuizList(APIView):
@@ -48,3 +49,28 @@ class QuizDetail(APIView):
         quiz = self.get_object(pk)
         quiz.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+class QuizForm(APIView):
+    def get_object(self, pk):
+        try:
+            return Quiz.objects.get(pk=pk)
+        except Quiz.DoesNotExist:
+            raise Http404
+    
+    def get(self, request, pk, format=None):
+        quiz = self.get_object(pk)
+        questions = quiz.get_questions()
+        if len(questions) > 1:
+            question_serializer = QuestionSerializer(questions, many=True)
+        else:
+            question_serializer = QuestionSerializer(questions)
+        answers = []
+        for q in questions:
+            answer = AnswerSerializer(data = q.get_answers(), many = True)
+            if answer.is_valid():
+                pass
+            answers.append(answer.data)  
+        return Response(data={
+            "questions": question_serializer.data,
+            "answers": answers
+        })
