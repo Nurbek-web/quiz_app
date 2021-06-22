@@ -70,7 +70,9 @@ class QuizForm(APIView):
             if answer.is_valid():
                 pass
             answers.append(answer.data)  
+        quiz_serializer = QuizSerializer(quiz)
         return Response(data={
             "questions": question_serializer.data,
-            "answers": answers
+            "answers": answers,
+            "quiz": quiz_serializer.data
         })

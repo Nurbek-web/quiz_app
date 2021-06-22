@@ -1,19 +1,39 @@
-import "./App.css";
+import React, { Component } from "react";
+import { BrowserRouter as Router } from "react-router-dom";
+import { connect } from "react-redux";
+import BaseRouter from "./routes";
+import * as actions from "./store/actions/auth";
 
 import MyLayout from "./containers/Layout";
-import BaseRouter from "./routes";
-import { BrowserRouter as Router } from "react-router-dom";
 
-function App() {
-  return (
-    <div className="App">
-      <Router>
-        <MyLayout>
-          <BaseRouter />
-        </MyLayout>
-      </Router>
-    </div>
-  );
+class App extends Component {
+  componentDidMount() {
+    this.props.onTryAutoSignup();
+  }
+
+  render() {
+    return (
+      <div>
+        <Router>
+          <MyLayout {...this.props}>
+            <BaseRouter {...this.props} />
+          </MyLayout>
+        </Router>
+      </div>
+    );
+  }
 }
 
-export default App;
+const mapStateToProps = (state) => {
+  return {
+    isAuthenticated: state.token !== null,
+  };
+};
+
+const mapDispatchToProps = (dispatch) => {
+  return {
+    onTryAutoSignup: () => dispatch(actions.authCheckState()),
+  };
+};
+
+export default connect(mapStateToProps, mapDispatchToProps)(App);

@@ -1,4 +1,7 @@
 import { Layout, Menu, Breadcrumb } from "antd";
+import { Link, withRouter } from "react-router-dom";
+import { connect } from "react-redux";
+import * as actions from "../store/actions/auth";
 
 const { Header, Content, Footer } = Layout;
 
@@ -7,20 +10,36 @@ function MyLayout(props) {
     <Layout className="layout">
       <Header>
         <div className="logo" />
-        <Menu theme="dark" mode="horizontal" defaultSelectedKeys={["2"]}>
-          {new Array(15).fill(null).map((_, index) => {
-            const key = index + 1;
-            return <Menu.Item key={key}>{`nav ${key}`}</Menu.Item>;
-          })}
+        <Menu
+          theme="dark"
+          mode="horizontal"
+          defaultSelectedKeys={["2"]}
+          style={{ lineHeight: "64px" }}
+        >
+          {props.isAuthenticated ? (
+            <>
+              <Menu.Item key="2" onClick={props.logout}>
+                Logout
+              </Menu.Item>
+              <Menu.Item key="3">
+                <Link to={`/profile/${props.user_id}`}>My profile</Link>
+              </Menu.Item>
+            </>
+          ) : (
+            <Menu.Item key="2">
+              <Link to="/login">Login</Link>
+            </Menu.Item>
+          )}
+          <Menu.Item key="1">
+            <Link to="/">Quizes</Link>
+          </Menu.Item>
         </Menu>
       </Header>
       <Content style={{ padding: "0 50px" }}>
-        <Breadcrumb style={{ margin: "16px 0" }}>
-          <Breadcrumb.Item>Home</Breadcrumb.Item>
-          <Breadcrumb.Item>List</Breadcrumb.Item>
-          <Breadcrumb.Item>App</Breadcrumb.Item>
-        </Breadcrumb>
-        <div className="site-layout-content">{props.children}</div>
+        <div className="mt-4">
+          {" "}
+          <div className="site-layout-content">{props.children}</div>
+        </div>
       </Content>
       <Footer style={{ textAlign: "center" }}>
         Nurbek Taizhanov ©2021 Created by Nurbek Corp.
@@ -28,5 +47,18 @@ function MyLayout(props) {
     </Layout>
   );
 }
+const mapStateToProps = (state) => {
+  return {
+    user_id: state.user_id,
+  };
+};
 
-export default MyLayout;
+const mapDispatchToProps = (dispatch) => {
+  return {
+    logout: () => dispatch(actions.logout()),
+  };
+};
+
+export default withRouter(
+  connect(mapStateToProps, mapDispatchToProps)(MyLayout)
+);

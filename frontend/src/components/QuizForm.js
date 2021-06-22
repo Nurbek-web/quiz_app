@@ -1,13 +1,21 @@
 import React, { useEffect, useState } from "react";
-import { Radio, Input, Space, Result, Button, Skeleton, Form } from "antd";
-
+import { Alert, Button, Skeleton } from "antd";
 import instance from "../config";
+import { Link } from "react-router-dom";
+import { useTimer } from "react-timer-hook";
+
+import DisplayForm from "../containers/DisplayForm";
 
 export default function QuizForm(props) {
   const [data, setData] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [values, setValues] = useState("");
+  const [isRunning, setIsRunning] = useState(true);
+
+  const [showResult, setShowResult] = useState(false);
+  const [result, setResult] = useState(false);
+  const [percentOfCorrectAnswers, setPercentOfCorrectAnswers] = useState("");
 
   const fetchQuestions = () => {
     const id = props.match.params.id;
@@ -25,6 +33,37 @@ export default function QuizForm(props) {
       });
   };
 
+  const HandleSubmit = () => {
+    let correctAnswers = 0;
+    let questionNumber = data.questions.length;
+
+    console.log("form has submitted", values);
+
+    Object.entries(values).map((item) => {
+      if (item[1]) {
+        correctAnswers++;
+      }
+    });
+    setPercentOfCorrectAnswers((correctAnswers / questionNumber) * 100);
+    console.log(correctAnswers);
+    console.log(data.quiz.required_score_to_pass);
+
+    if (
+      (correctAnswers / questionNumber) * 100 >=
+      data.quiz.required_score_to_pass
+    ) {
+      setResult(true);
+      console.log(result);
+      console.log("YEEEEEEEEEEEEEEES!!");
+    } else {
+      setResult(false);
+    }
+
+    console.log(questionNumber);
+    console.log(percentOfCorrectAnswers + "%");
+    setShowResult(true);
+  };
+
   const onChange = (event, name) => {
     console.log("radio checked", event.target.value);
     const value = event.target.value;
@@ -32,61 +71,102 @@ export default function QuizForm(props) {
     setValues((prev) => {
       return {
         ...prev,
-        [value]: value,
+        [name]: value,
       };
     });
 
     console.log(values);
   };
 
-  useEffect(() => {
-    fetchQuestions();
-  }, []);
-
-  const DisplayForm = () => {
-    if (error) {
-      return (
-        <Result
-          status="404"
-          title="404"
-          subTitle="Sorry, the page you visited does not exist."
-          extra={<Button type="primary">Back Home</Button>}
-        />
-      );
-    }
+  function MyTimer({ expiryTimestamp }) {
+    const { seconds, minutes, hours, days, isRunning } = useTimer({
+      expiryTimestamp,
+    });
     return (
-      <div>
-        <div className="container">
-          <Form onFinish={() => console.log("form has submitted")}>
-            {data.questions.map((question, index) => {
-              return (
-                <div className="mb-3" key={index}>
-                  <Radio.Group onChange={onChange(question.id)}>
-                    <div className="mb-1">
-                      <h5>{question.text}</h5>
-                    </div>
-                    <Space direction="vertical">
-                      {console.log(data.answers[index])}
-                      {data.answers[index].map((answer, index) => {
-                        return (
-                          <Radio key={index} value={answer.text}>
-                            {answer.text}
-                          </Radio>
-                        );
-                      })}
-                    </Space>
-                  </Radio.Group>
-                </div>
-              );
-            })}
-            <button className="btn btn-success" type="submit">
-              Submit
-            </button>
-          </Form>
+      <div style={{ textAlign: "center" }}>
+        <div style={{ fontSize: "100px" }}>
+          <span>{days}</span>:<span>{hours}</span>:<span>{minutes}</span>:
+          <span>{seconds}</span>
+        </div>
+        <div style={{ display: "none" }}>
+          {setIsRunning(isRunning ? true : false)}
         </div>
       </div>
     );
-  };
+  }
 
-  return <>{loading ? <Skeleton active /> : <DisplayForm />}</>;
+  let time;
+
+  useEffect(() => {
+    fetchQuestions();
+    console.log("useEffect");
+
+    time = new Date();
+    time.setSeconds(time.getSeconds() + data.quiz.time * 60);
+  }, []);
+
+  return (
+    <>
+      {isRunning ? (
+        <div>
+          {showResult ? null : (
+            <div>
+              {loading ? (
+                <Skeleton active />
+              ) : (
+                <div>
+                  <div className="container">
+                    {/* <div style={{ display: "none" }}>
+                      {time.setSeconds(time.getSeconds() + data.quiz.time * 60)}
+                    </div> */}
+                    <MyTimer expiryTimestamp={time} />
+                  </div>
+                  <div className="container">
+                    <DisplayForm
+                      data={data}
+                      HandleSubmit={HandleSubmit}
+                      error={error}
+                      onChange={onChange}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+          {showResult ? (
+            <div className="container mt-3">
+              {console.log(result)}
+              {result ? (
+                <Alert
+                  message="Success!!!"
+                  description={`You passed this test. Your score is ${percentOfCorrectAnswers}%`}
+                  type="success"
+                  showIcon
+                />
+              ) : (
+                <Alert
+                  message="Fail"
+                  description={`You failed test :( . Your score is ${percentOfCorrectAnswers}%. Required score is ${data.quiz.required_score_to_pass}%`}
+                  type="error"
+                  showIcon
+                />
+              )}
+              <div className="mt-3 text-center">
+                <Link to="/">
+                  <Button type="primary">Back to home</Button>
+                </Link>
+              </div>
+            </div>
+          ) : null}
+        </div>
+      ) : (
+        <Alert
+          message="Time is wasted"
+          description="Sorry, your time came up ): !"
+          type="error"
+          showIcon
+        />
+      )}
+    </>
+  );
 }

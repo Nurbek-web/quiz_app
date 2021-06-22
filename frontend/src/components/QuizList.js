@@ -1,8 +1,25 @@
 import { Card, Col, Row, Skeleton } from "antd";
 import React from "react";
 import { Link } from "react-router-dom";
-
 import instance from "../config";
+import { useTimer } from "react-timer-hook";
+
+function MyTimer({ expiryTimestamp }) {
+  const { seconds, minutes, hours, days, isRunning } = useTimer({
+    expiryTimestamp,
+    onExpire: () => console.warn("onExpire called"),
+  });
+
+  return (
+    <div style={{ textAlign: "center" }}>
+      <div style={{ fontSize: "100px" }}>
+        <span>{days}</span>:<span>{hours}</span>:<span>{minutes}</span>:
+        <span>{seconds}</span>
+      </div>
+      {isRunning ? <h1>Running</h1> : <h1>Not Running</h1>}
+    </div>
+  );
+}
 
 export default class QuizList extends React.Component {
   constructor(props) {
