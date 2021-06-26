@@ -182,6 +182,17 @@ function QuizEditMode(props) {
     fetchQuestionsAndAnswers();
   };
 
+  const handleDeleteOfAnswer = (question, answer) => {
+    const data = {
+      question: question,
+      answer: answer,
+      user_id: props.user_id,
+    };
+    instance
+      .delete(`quiz/${quiz.id}/answer/delete/`, data, config)
+      .then((res) => console.log(res));
+  };
+
   const onFinish = (values) => {
     console.log(values);
     instance
@@ -197,6 +208,7 @@ function QuizEditMode(props) {
         console.log(res);
         setDisplayForm(false);
       });
+    fetchQuestionsAndAnswers();
   };
 
   return (
@@ -251,6 +263,18 @@ function QuizEditMode(props) {
                                     return (
                                       <Card.Grid style={gridStyle}>
                                         {answer.text}
+                                        <h1> </h1>
+                                        <button
+                                          className="btn btn-danger"
+                                          onClick={() =>
+                                            handleDeleteOfAnswer(
+                                              question.id,
+                                              answer.id
+                                            )
+                                          }
+                                        >
+                                          Delete
+                                        </button>
                                       </Card.Grid>
                                     );
                                   })}

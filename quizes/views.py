@@ -178,3 +178,55 @@ def CreateAnswerForQuestion(request, pk):
     )
 
     return Response(status=status.HTTP_201_CREATED)
+
+@api_view(["GET"])
+def IsReadyQuiz(request, pk):
+    # getting quiz
+    quiz = Quiz.objects.get(pk=pk)
+    # checking author
+    if (quiz.author != request.user):
+        return Response(status=status.HTTP_403_FORBIDDEN)
+    # getting questions
+    questions = quiz.get_questions()
+
+    # getting answers of questions    
+    if (len(questions) < 1):
+        return Response(data=False)
+
+    for q in questions:
+        answers = q.get_answers()
+        if (len(answers) < 1):
+            return Response(data=False)
+        # answer = AnswerSerializer(data = q.get_answers(), many = True) 
+    return Response(data=True)
+
+@api_view(["DELETE"])
+def DeleteQuestionOfQuiz(request, pk):
+    # getting quiz
+    quiz = Quiz.objects.get(pk=pk)
+     # checking author
+    if (quiz.author != request.data["user_id"]):
+        return Response(status=status.HTTP_403_FORBIDDEN)
+    # getting question
+    question = request.data["question"]
+    # deleting question
+    question.delete()
+    return Response(data=True, status=status.HTTP_200_OK)
+
+@api_view(["DELETE"])
+def DeleteAnswerOfQuiz(request, pk):
+    # getting quiz
+    quiz = Quiz.objects.get(pk=pk)
+    # getting request data
+    data = request.data
+     # checking author
+    if (quiz.author != data["user_id"]):
+        return Response(status=status.HTTP_403_FORBIDDEN)
+    # getting question
+    question = data["question"]
+    # getting answer of question
+    answers = question.get_answers()
+    answer = answers[data["answer"]]
+    # deleting answer
+    answer.delete()
+    return Response(data=True, status=status.HTTP_200_OK)
