@@ -1,5 +1,7 @@
 from django.db import models
+from django.contrib.auth import get_user_model
 
+User = get_user_model()
 
 DIFF_CHOICES = (
     ('easy', 'easy'),
@@ -8,9 +10,9 @@ DIFF_CHOICES = (
 )
 
 class Quiz(models.Model):
+    author = models.ForeignKey(User, on_delete=models.CASCADE)
     name = models.CharField(max_length=120)
     topic = models.CharField(max_length=120)
-    number_of_questions = models.IntegerField()
     time = models.IntegerField(help_text="duration of the quiz in minutes")
     required_score_to_pass = models.IntegerField(help_text="required score in %")
     difficulty = models.CharField(max_length=6, choices=DIFF_CHOICES)

@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from "react";
 import { Skeleton, Descriptions, Result, Button } from "antd";
 import { Link, Redirect } from "react-router-dom";
+import { connect } from "react-redux";
 
 import instance from "../config";
 
-export default function QuizDetail(props) {
+function QuizDetail(props) {
   const [quiz, setQuiz] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -88,6 +89,11 @@ export default function QuizDetail(props) {
             <Link to={`${quiz.id}/start`}>
               <button className="btn btn-success">Get started!</button>
             </Link>
+            {quiz.author == props.user_id ? (
+              <Link to={`${quiz.id}/edit/`}>
+                <button className="btn btn-warning">Edit</button>
+              </Link>
+            ) : null}
           </div>
         </div>
       );
@@ -100,3 +106,13 @@ export default function QuizDetail(props) {
     </div>
   );
 }
+
+const mapStateToProps = (state) => {
+  return {
+    token: state.token,
+    isAuth: state.isAuth,
+    user_id: state.user_id,
+  };
+};
+
+export default connect(mapStateToProps, null)(QuizDetail);

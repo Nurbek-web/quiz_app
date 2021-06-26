@@ -1,24 +1,23 @@
 import React, { useEffect, useState } from "react";
-import { Alert, Button, Skeleton } from "antd";
+import { Alert, Button, Skeleton, Progress } from "antd";
 import instance from "../config";
 import { Link } from "react-router-dom";
-import { useTimer } from "react-timer-hook";
+import { connect } from "react-redux";
 
 import DisplayForm from "../containers/DisplayForm";
 
-export default function QuizForm(props) {
+function QuizForm(props) {
   const [data, setData] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [values, setValues] = useState("");
-  const [isRunning, setIsRunning] = useState(true);
 
   const [showResult, setShowResult] = useState(false);
   const [result, setResult] = useState(false);
   const [percentOfCorrectAnswers, setPercentOfCorrectAnswers] = useState("");
 
   const fetchQuestions = () => {
-    const id = props.match.params.id;
+    const id = props.id;
     console.log(id);
     instance
       .get(`quiz/${id}/form/`)
@@ -62,6 +61,34 @@ export default function QuizForm(props) {
     console.log(questionNumber);
     console.log(percentOfCorrectAnswers + "%");
     setShowResult(true);
+
+    // Stopping timer
+    props.stopTimer();
+
+    // sending result to server
+    console.log("Is authenticated :", props.isAuth);
+    if (props.isAuth) {
+      console.log("Posting results");
+      console.log(props.token);
+      const config = {
+        headers: {
+          "Content-type": "application/json",
+          Authorization: `Token ${props.token}`,
+        },
+      };
+      instance
+        .post(
+          "results/create/",
+          {
+            user: props.user_id,
+            quiz: data.quiz.id,
+            score: (correctAnswers / questionNumber) * 100,
+          },
+          config
+        )
+        .then((res) => console.log(res))
+        .catch((err) => console.error(err));
+    }
   };
 
   const onChange = (event, name) => {
@@ -78,57 +105,27 @@ export default function QuizForm(props) {
     console.log(values);
   };
 
-  function MyTimer({ expiryTimestamp }) {
-    const { seconds, minutes, hours, days, isRunning } = useTimer({
-      expiryTimestamp,
-    });
-    return (
-      <div style={{ textAlign: "center" }}>
-        <div style={{ fontSize: "100px" }}>
-          <span>{days}</span>:<span>{hours}</span>:<span>{minutes}</span>:
-          <span>{seconds}</span>
-        </div>
-        <div style={{ display: "none" }}>
-          {setIsRunning(isRunning ? true : false)}
-        </div>
-      </div>
-    );
-  }
-
-  let time;
-
   useEffect(() => {
     fetchQuestions();
     console.log("useEffect");
-
-    time = new Date();
-    time.setSeconds(time.getSeconds() + data.quiz.time * 60);
   }, []);
 
   return (
     <>
-      {isRunning ? (
+      {props.isRunningTimer ? (
         <div>
           {showResult ? null : (
             <div>
               {loading ? (
                 <Skeleton active />
               ) : (
-                <div>
-                  <div className="container">
-                    {/* <div style={{ display: "none" }}>
-                      {time.setSeconds(time.getSeconds() + data.quiz.time * 60)}
-                    </div> */}
-                    <MyTimer expiryTimestamp={time} />
-                  </div>
-                  <div className="container">
-                    <DisplayForm
-                      data={data}
-                      HandleSubmit={HandleSubmit}
-                      error={error}
-                      onChange={onChange}
-                    />
-                  </div>
+                <div className="container">
+                  <DisplayForm
+                    data={data}
+                    HandleSubmit={HandleSubmit}
+                    error={error}
+                    onChange={onChange}
+                  />
                 </div>
               )}
             </div>
@@ -137,19 +134,35 @@ export default function QuizForm(props) {
             <div className="container mt-3">
               {console.log(result)}
               {result ? (
-                <Alert
-                  message="Success!!!"
-                  description={`You passed this test. Your score is ${percentOfCorrectAnswers}%`}
-                  type="success"
-                  showIcon
-                />
+                <>
+                  <Alert
+                    message="Success!!!"
+                    description={`You passed this test. Your score is ${percentOfCorrectAnswers}%`}
+                    type="success"
+                    showIcon
+                  />
+                  <Progress
+                    type="circle"
+                    percent={percentOfCorrectAnswers}
+                    status={"success"}
+                    className="container text-center pt-4"
+                  />
+                </>
               ) : (
-                <Alert
-                  message="Fail"
-                  description={`You failed test :( . Your score is ${percentOfCorrectAnswers}%. Required score is ${data.quiz.required_score_to_pass}%`}
-                  type="error"
-                  showIcon
-                />
+                <>
+                  <Alert
+                    message="Fail"
+                    description={`You failed test :( . Your score is ${percentOfCorrectAnswers}%. Required score is ${data.quiz.required_score_to_pass}%`}
+                    type="error"
+                    showIcon
+                  />
+                  <Progress
+                    type="circle"
+                    percent={percentOfCorrectAnswers}
+                    status={"exception"}
+                    className="container text-center pt-4"
+                  />
+                </>
               )}
               <div className="mt-3 text-center">
                 <Link to="/">
@@ -161,8 +174,8 @@ export default function QuizForm(props) {
         </div>
       ) : (
         <Alert
-          message="Time is wasted"
-          description="Sorry, your time came up ): !"
+          message="Your time is up!"
+          description="Sorry, you have wasted your time :("
           type="error"
           showIcon
         />
@@ -170,3 +183,13 @@ export default function QuizForm(props) {
     </>
   );
 }
+
+const mapStateToProps = (state) => {
+  return {
+    isAuth: state.isAuth,
+    user_id: state.user_id,
+    token: state.token,
+  };
+};
+
+export default connect(mapStateToProps, null)(QuizForm);

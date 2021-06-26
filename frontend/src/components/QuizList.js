@@ -1,27 +1,11 @@
-import { Card, Col, Row, Skeleton } from "antd";
+import { Card, Col, Row, Skeleton, Button } from "antd";
 import React from "react";
 import { Link } from "react-router-dom";
 import instance from "../config";
-import { useTimer } from "react-timer-hook";
+import { connect } from "react-redux";
+import { AppstoreAddOutlined } from "@ant-design/icons";
 
-function MyTimer({ expiryTimestamp }) {
-  const { seconds, minutes, hours, days, isRunning } = useTimer({
-    expiryTimestamp,
-    onExpire: () => console.warn("onExpire called"),
-  });
-
-  return (
-    <div style={{ textAlign: "center" }}>
-      <div style={{ fontSize: "100px" }}>
-        <span>{days}</span>:<span>{hours}</span>:<span>{minutes}</span>:
-        <span>{seconds}</span>
-      </div>
-      {isRunning ? <h1>Running</h1> : <h1>Not Running</h1>}
-    </div>
-  );
-}
-
-export default class QuizList extends React.Component {
+class QuizList extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
@@ -104,8 +88,24 @@ export default class QuizList extends React.Component {
   render() {
     return (
       <div>
+        {this.props.isAuth ? (
+          <Link to="/create">
+            <Button type="primary">
+              <AppstoreAddOutlined style={{ fontSize: 20 }} />
+              Create quiz
+            </Button>
+          </Link>
+        ) : null}
         {this.state.loading ? <this.DisplayData /> : <Skeleton active />}
       </div>
     );
   }
 }
+
+const mapStateToProps = (state) => {
+  return {
+    isAuth: state.isAuth,
+  };
+};
+
+export default connect(mapStateToProps, null)(QuizList);
