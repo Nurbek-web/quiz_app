@@ -23,9 +23,10 @@ function QuizCreate(props) {
         Authorization: `Token ${props.token}`,
       },
     };
-    instance
-      .post("quiz/create/", values, config)
-      .then((res) => console.log(res));
+    instance.post("quiz/create/", values, config).then((res) => {
+      props.history.push("/");
+      console.log(res);
+    });
   };
 
   return (

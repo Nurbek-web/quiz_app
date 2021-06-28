@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Switch } from "react";
 import instance from "../config";
 import { connect } from "react-redux";
 import {
@@ -11,10 +11,30 @@ import {
   Card,
   Checkbox,
   Alert,
+  InputNumber,
+  BackTop,
+  notification,
 } from "antd";
 import { Link } from "react-router-dom";
+import { DeleteOutlined, CheckCircleTwoTone } from "@ant-design/icons";
 
 const { Option } = Select;
+
+const formItemLayout = {
+  labelCol: { span: 7 },
+  wrapperCol: { span: 12 },
+};
+
+const style = {
+  height: 40,
+  width: 40,
+  lineHeight: "40px",
+  borderRadius: 4,
+  backgroundColor: "#1088e9",
+  color: "#fff",
+  textAlign: "center",
+  fontSize: 14,
+};
 
 function QuizEditMode(props) {
   const [quiz, setQuiz] = useState(null);
@@ -26,6 +46,8 @@ function QuizEditMode(props) {
   const [key, setKey] = useState(null);
   const [questionId, setQuestionId] = useState(null);
   const [checkboxValue, setCheckBoxValue] = useState(false);
+  const [displayQuizForm, setDisplayQuizForm] = useState(false);
+  const [warning, setWarning] = useState(false);
 
   const config = {
     headers: {
@@ -98,10 +120,136 @@ function QuizEditMode(props) {
               {quiz.time}
             </Descriptions.Item>
           </Descriptions>
+          <div className="pt-2">
+            <DisplayQuizDetailForm />
+          </div>
         </div>
       );
     }
     return null;
+  };
+
+  const DisplayQuizDetailForm = () => {
+    const initialValues = {
+      name: quiz.name,
+      topic: quiz.topic,
+      time: quiz.time,
+      required_score_to_pass: quiz.required_score_to_pass,
+      difficulty: quiz.difficulty,
+    };
+
+    return (
+      <>
+        {displayQuizForm ? (
+          <Form
+            onFinish={onFinishQuizDetailForm}
+            layout="vertical"
+            scrollToFirstError={true}
+            initialValues={initialValues}
+          >
+            <Form.Item
+              name="name"
+              rules={[
+                { required: true, message: "Please select your name of quiz!" },
+              ]}
+              hasFeedback
+            >
+              <Input placeholder="Enter the quiz name" />
+            </Form.Item>
+            <Form.Item
+              name="topic"
+              rules={[
+                { required: true, message: "Please select topic of quiz!" },
+              ]}
+              hasFeedback
+            >
+              <Input placeholder="Enter topic of quiz" />
+            </Form.Item>
+            <Form.Item
+              name="time"
+              {...formItemLayout}
+              label="Enter the time of quiz (in minutes)"
+              rules={[
+                { required: true, message: "Please select time of your quiz!" },
+              ]}
+              hasFeedback
+            >
+              <InputNumber min={1} max={1400} />
+            </Form.Item>
+
+            <Form.Item
+              hasFeedback
+              name="required_score_to_pass"
+              {...formItemLayout}
+              label="Enter the required score to pass (%)"
+              rules={[
+                {
+                  required: true,
+                  message: "Please select required score to pass (%)!",
+                },
+              ]}
+            >
+              <InputNumber min={1} max={100} />
+            </Form.Item>
+
+            <Form.Item
+              name="difficulty"
+              hasFeedback
+              rules={[
+                {
+                  required: true,
+                  message: "Please select difficulty of your quiz",
+                },
+              ]}
+            >
+              <Select placeholder="Please select a difficulty of your quiz">
+                <Option value="easy">easy</Option>
+                <Option value="medium">medium</Option>
+                <Option value="hard">hard</Option>
+              </Select>
+            </Form.Item>
+
+            <Form.Item>
+              <div className="row justify-content-between">
+                <div className="col-6">
+                  <Button type="primary" htmlType="submit">
+                    Submit
+                  </Button>
+                </div>
+                <div className="col-6 text-right">
+                  <button
+                    className="btn btn-warning"
+                    onClick={() => setDisplayQuizForm(false)}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </Form.Item>
+          </Form>
+        ) : (
+          <div className="text-center">
+            <Button type="primary" onClick={() => setDisplayQuizForm(true)}>
+              Edit
+            </Button>
+          </div>
+        )}
+      </>
+    );
+  };
+
+  const openNotification = () => {
+    if (!warning) {
+      notification.open({
+        message: "Warning",
+        description:
+          "Your quiz cannot start without any answer to question. Please, add any answer to your question",
+        onClick: () => {
+          console.log("Notification Clicked!");
+        },
+      });
+      setWarning(true);
+    }
   };
 
   const AnswerForm = () => {
@@ -123,7 +271,7 @@ function QuizEditMode(props) {
           ]}
           hasFeedback
         >
-          <Input placeholder="Enter the question text" />
+          <Input placeholder="Enter the answer text" />
         </Form.Item>
         <Form.Item name="correct">
           <Checkbox onChange={onChangeCheckbox}>
@@ -146,9 +294,20 @@ function QuizEditMode(props) {
     );
   };
 
+  const onFinishQuizDetailForm = (values) => {
+    instance
+      .put(`quiz/${quiz.id}/update/`, values, config)
+      .then((res) => {
+        console.log(res);
+        setDisplayQuizForm(false);
+        fetchQuiz();
+      })
+      .catch((err) => console.error(err));
+  };
+
   const onChangeCheckbox = (e) => {
-    setCheckBoxValue(e.target.checked);
     console.log(`checked = ${e.target.checked}`);
+    setCheckBoxValue(e.target.checked);
   };
 
   const onClick = (value) => {
@@ -176,21 +335,31 @@ function QuizEditMode(props) {
       correct: checkboxValue,
       question: questionId,
     });
-    instance.post(`quiz/${quiz.id}/answer/`, data, config);
+    instance.post(`quiz/${quiz.id}/answer/`, data, config).then(() => {
+      fetchQuestionsAndAnswers();
+    });
     setDisplayAnswerForm(false);
     form.resetFields();
-    fetchQuestionsAndAnswers();
   };
 
-  const handleDeleteOfAnswer = (question, answer) => {
-    const data = {
-      question: question,
-      answer: answer,
-      user_id: props.user_id,
-    };
+  const handleDeleteOfAnswer = (answer) => {
     instance
-      .delete(`quiz/${quiz.id}/answer/delete/`, data, config)
-      .then((res) => console.log(res));
+      .delete(`quiz/${quiz.id}/answer/${answer}/delete/`, config)
+      .then((res) => {
+        console.log(res);
+        fetchQuestionsAndAnswers();
+      })
+      .catch((err) => console.error(err));
+  };
+
+  const handleDeleteOfQuestion = (question) => {
+    instance
+      .delete(`quiz/${quiz.id}/question/${question}/delete/`, config)
+      .then((res) => {
+        console.log(res);
+        fetchQuestionsAndAnswers();
+      })
+      .catch((err) => console.error(err));
   };
 
   const onFinish = (values) => {
@@ -207,8 +376,8 @@ function QuizEditMode(props) {
       .then((res) => {
         console.log(res);
         setDisplayForm(false);
+        fetchQuestionsAndAnswers();
       });
-    fetchQuestionsAndAnswers();
   };
 
   return (
@@ -228,56 +397,90 @@ function QuizEditMode(props) {
                           <>
                             <Card
                               title={
-                                <>
-                                  {question.text}
-                                  <Button
-                                    type="primary"
-                                    style={{
-                                      display: "flex",
-                                      justifyContent: "left",
-                                    }}
-                                    onClick={() =>
-                                      onClickAnswerForm(
-                                        true,
-                                        question.text,
-                                        question.id
-                                      )
-                                    }
-                                  >
-                                    + add answer
-                                  </Button>
-                                </>
+                                <div>
+                                  <div className="row">
+                                    <div className="col-12">
+                                      {question.text}
+                                    </div>
+                                  </div>
+
+                                  <div className="row justify-content-between">
+                                    <div className="col-4">
+                                      <Button
+                                        type="primary"
+                                        style={{
+                                          display: "flex",
+                                          justifyContent: "left",
+                                        }}
+                                        onClick={() =>
+                                          onClickAnswerForm(
+                                            true,
+                                            question.text,
+                                            question.id
+                                          )
+                                        }
+                                      >
+                                        + add answer
+                                      </Button>
+                                    </div>
+                                    <div className="col-4 text-right">
+                                      <button
+                                        className="btn btn-danger"
+                                        onClick={() =>
+                                          handleDeleteOfQuestion(question.id)
+                                        }
+                                      >
+                                        <DeleteOutlined
+                                          style={{ fontSize: 20 }}
+                                        />
+                                      </button>
+                                    </div>
+                                  </div>
+                                </div>
                               }
                             >
-                              {answers[index].length == 0 ? (
-                                <Alert
-                                  message="Warning"
-                                  description="Your quiz cannot start without any answer to question"
-                                  type="warning"
-                                  showIcon
-                                  closable
-                                />
-                              ) : (
+                              {answers[index] === undefined ? null : (
                                 <>
-                                  {answers[index].map((answer) => {
-                                    return (
-                                      <Card.Grid style={gridStyle}>
-                                        {answer.text}
-                                        <h1> </h1>
-                                        <button
-                                          className="btn btn-danger"
-                                          onClick={() =>
-                                            handleDeleteOfAnswer(
-                                              question.id,
-                                              answer.id
-                                            )
-                                          }
-                                        >
-                                          Delete
-                                        </button>
-                                      </Card.Grid>
-                                    );
-                                  })}
+                                  {answers[index].length == 0 ? (
+                                    <>
+                                      <Alert
+                                        message="Warning"
+                                        description="Your quiz cannot start without any answer to question"
+                                        type="warning"
+                                        showIcon
+                                        closable
+                                      />
+                                      {openNotification()}
+                                    </>
+                                  ) : (
+                                    <>
+                                      {answers[index].map((answer) => {
+                                        return (
+                                          <Card.Grid style={gridStyle}>
+                                            {answer.text}
+                                            {answer.correct ? (
+                                              <CheckCircleTwoTone
+                                                twoToneColor="#52c41a"
+                                                style={{ fontSize: 15 }}
+                                                className="pl-1"
+                                              />
+                                            ) : null}
+                                            <h1> </h1>
+                                            <button
+                                              className="btn btn-danger"
+                                              onClick={() =>
+                                                handleDeleteOfAnswer(answer.id)
+                                              }
+                                            >
+                                              <DeleteOutlined
+                                                style={{ fontSize: 20 }}
+                                              />
+                                            </button>
+                                          </Card.Grid>
+                                        );
+                                      })}
+                                    </>
+                                  )}
                                 </>
                               )}
                             </Card>
@@ -353,6 +556,9 @@ function QuizEditMode(props) {
           }
         />
       )}
+      <BackTop>
+        <div style={style}>UP</div>
+      </BackTop>
     </div>
   );
 }

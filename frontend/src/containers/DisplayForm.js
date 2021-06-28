@@ -1,7 +1,9 @@
-import React from "react";
+import React, { useState } from "react";
 import { Radio, Space, Result, Button, Form } from "antd";
 
 const DisplayForm = ({ data, HandleSubmit, error, onChange }) => {
+  const [value, setValue] = useState({});
+
   if (error) {
     return (
       <Result
@@ -12,6 +14,7 @@ const DisplayForm = ({ data, HandleSubmit, error, onChange }) => {
       />
     );
   }
+
   return (
     <div>
       <div className="container">
@@ -20,8 +23,11 @@ const DisplayForm = ({ data, HandleSubmit, error, onChange }) => {
             return (
               <div className="mb-3" key={index}>
                 <Radio.Group
-                  value={question.text}
-                  onChange={(event) => onChange(event, question.id)}
+                  value={value[question.id]}
+                  onChange={(event) => {
+                    onChange(event, question.id, setValue);
+                    console.log(value);
+                  }}
                 >
                   <div className="mb-1">
                     <h5>{question.text}</h5>
@@ -29,7 +35,7 @@ const DisplayForm = ({ data, HandleSubmit, error, onChange }) => {
                   <Space direction="vertical">
                     {data.answers[index].map((answer, index) => {
                       return (
-                        <Radio value={answer.correct} key={index}>
+                        <Radio value={answer} key={index}>
                           {answer.text}
                         </Radio>
                       );

@@ -1,4 +1,4 @@
-import { Card, Col, Row, Skeleton, Button } from "antd";
+import { Card, Col, Row, Skeleton, Button, Result } from "antd";
 import React from "react";
 import { Link } from "react-router-dom";
 import instance from "../config";
@@ -11,6 +11,7 @@ class QuizList extends React.Component {
     this.state = {
       data: "",
       loading: false,
+      error: false,
     };
 
     this.fetchData = this.fetchData.bind(this);
@@ -32,7 +33,13 @@ class QuizList extends React.Component {
         });
         console.log(res.data);
       })
-      .catch((e) => console.error(e));
+      .catch((e) => {
+        this.setState({
+          loading: true,
+          error: true,
+        });
+        console.error(e);
+      });
   }
 
   componentDidMount() {
@@ -96,7 +103,17 @@ class QuizList extends React.Component {
             </Button>
           </Link>
         ) : null}
-        {this.state.loading ? <this.DisplayData /> : <Skeleton active />}
+        {!this.state.loading ? (
+          <Skeleton active />
+        ) : !this.state.error ? (
+          <this.DisplayData />
+        ) : (
+          <Result
+            status="500"
+            title="500"
+            subTitle="Sorry, something went wrong."
+          />
+        )}
       </div>
     );
   }

@@ -6,14 +6,14 @@ from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 
-from .serializers import AnswerSerializer, QuizSerializer, QuestionSerializer
+from .serializers import AnswerSerializer, QuizSerializer, QuestionSerializer, UserSerializer
 from quizes.models import Quiz
 from questions.models import Answer, Question
 
 # GET, POST
 class QuizList(APIView):
     def get(self, request, format=None):
-        quizes = Quiz.objects.all()
+        quizes = Quiz.objects.all().order_by("-date")
         serializer = QuizSerializer(quizes, many=True)
         return Response(data=serializer.data)
     
@@ -63,10 +63,7 @@ class QuizForm(APIView):
     def get(self, request, pk, format=None):
         quiz = self.get_object(pk)
         questions = quiz.get_questions()
-        if len(questions) > 1:
-            question_serializer = QuestionSerializer(questions, many=True)
-        else:
-            question_serializer = QuestionSerializer(questions)
+        question_serializer = QuestionSerializer(questions, many=True)
         answers = []
         for q in questions:
             answer = AnswerSerializer(data = q.get_answers(), many = True)
@@ -183,9 +180,7 @@ def CreateAnswerForQuestion(request, pk):
 def IsReadyQuiz(request, pk):
     # getting quiz
     quiz = Quiz.objects.get(pk=pk)
-    # checking author
-    if (quiz.author != request.user):
-        return Response(status=status.HTTP_403_FORBIDDEN)
+
     # getting questions
     questions = quiz.get_questions()
 
@@ -201,32 +196,52 @@ def IsReadyQuiz(request, pk):
     return Response(data=True)
 
 @api_view(["DELETE"])
-def DeleteQuestionOfQuiz(request, pk):
+def DeleteQuestionOfQuiz(request, question_id, quiz_id):
     # getting quiz
-    quiz = Quiz.objects.get(pk=pk)
+    quiz = Quiz.objects.get(pk=quiz_id)
      # checking author
-    if (quiz.author != request.data["user_id"]):
+    if (quiz.author != request.user):
         return Response(status=status.HTTP_403_FORBIDDEN)
     # getting question
-    question = request.data["question"]
+    question = Question.objects.get(id=question_id)
     # deleting question
     question.delete()
     return Response(data=True, status=status.HTTP_200_OK)
 
 @api_view(["DELETE"])
-def DeleteAnswerOfQuiz(request, pk):
+@permission_classes([IsAuthenticated])
+def DeleteAnswerOfQuiz(request, answer_id, quiz_id):
     # getting quiz
-    quiz = Quiz.objects.get(pk=pk)
-    # getting request data
-    data = request.data
+    quiz = Quiz.objects.get(id=quiz_id)
+    # getting requesting user
+    user = request.user
      # checking author
-    if (quiz.author != data["user_id"]):
+    if (quiz.author != user):
         return Response(status=status.HTTP_403_FORBIDDEN)
-    # getting question
-    question = data["question"]
-    # getting answer of question
-    answers = question.get_answers()
-    answer = answers[data["answer"]]
+    answer = Answer.objects.get(id=answer_id)
     # deleting answer
     answer.delete()
     return Response(data=True, status=status.HTTP_200_OK)
+
+@api_view(["PUT"])
+@permission_classes([IsAuthenticated])
+def UpdateQuizDetails(request, pk):
+    # getting quiz
+    quiz = Quiz.objects.get(pk=pk)
+    # getting user'
+    user = request.user
+    if (quiz.author != user):
+        return Response(status=status.HTTP_403_FORBIDDEN)
+    data = request.data
+    
+    # updating details of quiz
+    quiz.author = request.user
+    quiz.name = data["name"]
+    quiz.topic = data["topic"]
+    quiz.time = data["time"]
+    quiz.required_score_to_pass = data["required_score_to_pass"]
+    quiz.difficulty = data["difficulty"]
+
+    quiz.save()
+
+    return Response("Quiz was successfully updated!", status=status.HTTP_202_ACCEPTED)

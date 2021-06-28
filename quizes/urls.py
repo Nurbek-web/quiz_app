@@ -12,8 +12,9 @@ urlpatterns = [
     path("<int:pk>/questions/", views.GetQuestionsAndAnswersOfQuiz),
     path("<int:pk>/answer/", views.CreateAnswerForQuestion),
     path("<int:pk>/isready/", views.IsReadyQuiz),
-    path("<int:pk>/questions/delete/", views.DeleteQuestionOfQuiz),
-    path("<int:pk>/answer/delete/", views.DeleteAnswerOfQuiz),
+    path("<int:quiz_id>/question/<int:question_id>/delete/", views.DeleteQuestionOfQuiz),
+    path("<int:quiz_id>/answer/<int:answer_id>/delete/", views.DeleteAnswerOfQuiz),
+    path("<int:pk>/update/", views.UpdateQuizDetails),
 ]
 
 urlpatterns = format_suffix_patterns(urlpatterns)

@@ -91,9 +91,15 @@ function QuizForm(props) {
     }
   };
 
-  const onChange = (event, name) => {
-    console.log("radio checked", event.target.value);
-    const value = event.target.value;
+  const onChange = (event, name, setValue) => {
+    console.log("radio checked", event.target.value.id);
+    const value = event.target.value.correct;
+    setValue((prev) => {
+      return {
+        ...prev,
+        [name]: event.target.value,
+      };
+    });
 
     setValues((prev) => {
       return {
